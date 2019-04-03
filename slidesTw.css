@@ -1,0 +1,22 @@
+/*
+Adjustments to default slide styles by Thomas Wutzelr
+*/
+
+/* bold (**X**) appears darkRed */
+strong {
+ color: DarkRed;
+}
+
+/* slide titles in dark blue */
+h2, h3 {
+  color: #002b80;
+}
+
+/* lists without bullet points */
+.omitBullets ul li ul li::before {
+  content: '';
+}
+.omitBullets ul li::before {
+  content: '';
+}
+

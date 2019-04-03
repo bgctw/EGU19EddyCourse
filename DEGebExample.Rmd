@@ -1,0 +1,270 @@
+---
+title: "Gebesee handson"
+author: "Thomas Wutzler"
+date: "`r Sys.Date()`"
+output: html_notebook
+---
+
+
+# uStar Threshold estimation
+
+## Preparing the data
+First, the data is loaded. This example uses data that has been downloaded 
+from http://www.europe-fluxdata.eu
+and preprocessed by `fLoadEuroFlux16`, where the DateTime Column has been created, 
+and the variables renamed to the BGC-convention (e.g. Tair instead of Ta).
+
+```{r}
+library(REddyProc)
+data(DEGebExample)
+summary(DEGebExample)
+```
+
+VPD was not given with the original dataset and is calculated from Tair and rH.
+```{r}
+DEGebExample$VPD <- fCalcVPDfromRHandTair(DEGebExample$rH, DEGebExample$Tair)
+```
+
+## Task 1a: Create the REddyProc class
+
+with columns c('NEE','Rg','Tair','VPD', 'Ustar')
+
+at Location LatDeg = 51.1, LongDeg = 10.9, 
+
+and timezone one hour adead of GMT (TimeZoneHour = 1)
+```{r}
+EProc <- sEddyProc$new('DE-Geb', DEGebExample, c('NEE','Rg','Tair','VPD', 'Ustar'))
+EProc$sSetLocationInfo(LatDeg = 51.1, LongDeg = 10.9, TimeZoneHour = 1)  #Location of Gebesee
+```
+
+## Defining Seasons with different surface friction conditions 
+
+The site is a crop site. The harvesting times are visible as sharp edges in the plots of NEE.
+
+The micrometeorological conditions differ between the different cropping periods,
+because the friction at the surface differs.
+Also not the cropping periods do not correspond very well to seasons.
+Hence, for the estimation of uStar-Thresholds, we apply a user-defined splitting 
+of uStar-seasons. With function `usCreateSeasonFactorYdayYear` we provide the starting
+points of the seasons.  
+```{r}
+plot( NEE ~ DateTime, DEGebExample )
+```
+
+## Task 1b: Define sesason
+
+Base on the NEE plot define seasons with
+starting at day 70, 210, 320 in 2004 and 70,180,320 in 2005 and 120,305 in 2006
+
+Optional: Add horizontal lines to the NEE~DateTime plot.
+```{r DEGeb_estUStar1a, spar = TRUE, message = FALSE, fig.width = 10}
+seasonStarts <- as.data.frame( do.call( rbind, list(
+	  c(70,2004)
+          ,c(210,2004)
+          ,c(320,2004)
+          ,c(70,2005)
+          ,c(180,2005)
+          ,c(320,2005)
+          ,c(120,2006)
+          ,c(305,2006) 		
+)))
+seasonFactor <- usCreateSeasonFactorYdayYear(
+  DEGebExample$DateTime - 15*60, starts = seasonStarts)
+seasonStartsDate <- fConvertTimeToPosix( data.frame(Year = seasonStarts[,2]
+	, DoY = seasonStarts[,1], Hour = 0.25), 'YDH'
+	, Year = "Year", Day = "DoY", Hour = "Hour")
+plot( NEE ~ DateTime, DEGebExample )
+abline( v = seasonStartsDate$DateTime)
+```
+
+## Task 1c: Estimate the distribution of u* thresholds
+
+Specify the seasons defined before.
+
+For saving time, here use only 30 bootstrap samples (argument nSample) and 
+estimate only the 10th and 90th percentile (argument probs)
+
+Print the estimated thresholds.
+
+
+```{r DEGeb_estUStar1b}
+EProc$sEstimateUstarScenarios( 
+  seasonFactor = seasonFactor, nSample = 30L, probs = c(0.1,0.9))
+EProc$sGetEstimatedUstarThresholdDistribution()
+```
+
+# Gapfilling
+
+## Task 2a: Use seasonal u* thresholds
+
+and display the used thresholds 
+
+```{r, message = FALSE}
+EProc$useSeaonsalUStarThresholds()
+EProc$sGetUstarScenarios()
+```
+
+## Task 2b: Perform gapfilling for NEE
+
+Estimate random error also for non-gap records.
+```{r, message=FALSE}
+?sEddyProc_sMDSGapFillUStarScens
+### TO_COMPLETE
+EProc$sMDSGapFillUStarScens("NEE", FillAll = TRUE)
+```
+
+## Task 2c: Produce a fingerprint plot of gapfilled values
+
+First a single plot in document
+- for 90% quantile $u_{*Th}$ (suffix U90)
+- for year 2005
+
+```{r}
+EProc$sPlotFingerprintY('NEE_U90_f', Year = 2005)
+```
+Next, produce pdf-files with legend for all years in subdirectory "plotsHandsOn"
+```{r}
+EProc$sPlotFingerprint('NEE_U90_f', Dir = "plotsHandsOn")
+```
+
+# Flux partitioning
+
+## Task 3a: Prepare for partitioning
+Specify the Location and time zone (51.1N, 10.0W, 1hour ahead of GMT)
+
+Gapfill the necessary meteorological input variables (Rg, Tair, VPD). Here
+we do not need computing the uncertainty of the non-filled records.
+
+```{r, message=FALSE}
+?sEddyProc_sSetLocationInfo
+EProc$sSetLocationInfo(LatDeg = 51.1, LongDeg = 10.9, TimeZoneHour = 1)  #Location of Gebesee
+EProc$sMDSGapFill('Rg', FillAll = FALSE)     
+EProc$sMDSGapFill('Tair', FillAll = FALSE)     
+EProc$sMDSGapFill('VPD', FillAll = FALSE)     
+```
+
+## Task 3b: Nighttime partitioning
+Perform the nighttime partitioning
+
+```{r, message=FALSE}
+?sEddyProc_sMRFluxPartitionUStarScens
+EProc$sMRFluxPartitionUStarScens()
+```
+
+## Task 3c: Plotting the head GPP
+Query the result data.frame to variable res
+```{r}
+?sEddyProc_sExportResults
+dsResults <- EProc$sExportResults()
+```
+
+Plot the head of GPP for U90 scenario against time (DEGebExample$DateTime)
+```{r}
+nRec = 48*4 # 4 days of half-hours
+plot(head(dsResults$GPP_U90_f,nRec) ~ head(DEGebExample$DateTime, nRec), type = "l")
+```
+
+
+## Task3d: Daytime partitioning
+Perform the daytime partitioning.
+
+```{r, message=FALSE}
+?sEddyProc_sGLFluxPartitionUStarScens
+EProc$sGLFluxPartitionUStarScens()
+```
+
+Bonus Task: Repeat with fixed Temperature Senstivity to 80 $\pm$40 K
+```{r eval=FALSE}
+?partGLControl
+EProc$sGLFluxPartitionUStarScens(
+  controlGLPart = partGLControl(
+    fixedTempSens = data.frame(E0 = 80, sdE0 = 40, RRef = NA_real_))
+  ,isWarnReplaceColumns = FALSE
+)
+```
+
+## Task 3e: Produce fingerprint plots of GPP_DT and Reco_DT 
+- For the original non-bootstrapped data uStar scenario (suffix uStar)
+- In Sub-Directory `plotsHandsOn`
+```{r}
+?sEddyProc_sPlotFingerprint
+EProc$sPlotFingerprint("GPP_DT_uStar",Dir = "plotsHandsOn")
+EProc$sPlotFingerprint("Reco_DT_uStar",Dir = "plotsHandsOn")
+```
+
+## Task 3f: Save the results together with the data
+as tab-delimted text file "plotsHandsOn/DEGeb_Part.txt"
+```{r}
+?sEddyProc_sExportResults
+?sEddyProc_sExportData
+?fWriteDataframeToFile
+dsRes <- EProc$sExportResults()
+dsData <- EProc$sExportData()
+fWriteDataframeToFile(cbind(dsData, dsRes),"DE-Geb_Part.txt", Dir = "plotsHandsOn")
+```
+
+```{r include=FALSE}
+#if (file.exists("plotsHandsOn/DE-Geb_Part.txt"))
+#  cat(readLines("plotsHandsOn/DE-Geb_Part.txt", n = 5))
+```
+
+# Uncertainty aggregation
+
+# Before
+After setting the uStar scenarios, they will be used by method 
+`sMDSGapFillUStarScens`.
+```{r DEGeb_gapFillBoot1, cache = TRUE, message = FALSE, output = 'hide'}
+EProc$sMDSGapFillUStarScens('NEE', FillAll = FALSE)
+```
+
+Additional output columns are produced for each uStar quantile. 
+
+```{r}
+grep("^NEE.*_f$", colnames( EProc$sExportResults()), value = TRUE )
+```		
+
+Several methods provide processing steps for all scenarios.
+In addition, method `sApplyUStarScen` calls a user-specified function repeatedly
+with a modified argument `suffix`. 
+For example, the flux partitioning across all threshold scenarios can be
+invoked by the following code to produce several GPP estimates.
+
+```{r DEGeb_fluxPart1, cache = TRUE, message = FALSE}
+EProc$sMDSGapFill('Tair', FillAll = FALSE)
+EProc$sApplyUStarScen( EProc$sMRFluxPartition )
+#grep("U10", colnames(EProc$sExportResults()), value = TRUE) 	
+grep("^GPP.*_f$", colnames( EProc$sExportResults()), value = TRUE )
+```
+
+Using change point detection instead of moving point method for UStar Threshold estimation
+------------------------------------------------------------------------------------------
+
+The package also provides another method of estimating the point where NEE saturates 
+with increasing uStar.
+With the ChangePointDetection (CPT) method, the data is not binned by classes of 
+uStar but the changepoint
+is estimated based on the entire subset within one seasons and one temperature class.
+The user invokes this method by specifying argument 
+`ctrlUstarEst.l = usControlUstarEst(isUsingCPTSeveralT = TRUE)`
+to `EstUstarThold` or `sEstUstarThresholdDistribution`.
+
+The CPT method is usually yields higher thresholds and marks more data as Gap. 
+  
+```{r DEGeb_estUStarCPT, cache = TRUE}
+EProc <- sEddyProc$new(
+  'DE-Geb', DEGebExample, c('NEE','Rg','Tair','VPD', 'Ustar'))
+resUStar <- EProc$sEstUstarThold(
+					ctrlUstarEst = usControlUstarEst(isUsingCPTSeveralT = TRUE)
+					, seasonFactor = seasonFactor
+			)
+#(uStarThCP <- usGetSeasonalSeasonUStarMap(resUStar))
+EProc$useSeaonsalUStarThresholds()
+EProc$sGetUstarScenarios()
+```
+
+
+		
+
+
+
+

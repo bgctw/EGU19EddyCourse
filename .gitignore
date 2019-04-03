@@ -3,3 +3,13 @@
 .RData
 .Ruserdata
 rstudio.Rproj
+*.nb.html
+*_cache
+*_files
+gapFilling.Rmd
+aggUncertainty.Rmd
+plots/*
+plotsHandsOn/*
+useCase.Rmd
+uStarCases.Rmd
+*.html

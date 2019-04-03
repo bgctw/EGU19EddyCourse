@@ -1,0 +1,75 @@
+---
+title: "Random uncertainty"
+author: "Thomas Wutzler"
+# output:
+#   ioslides_presentation:
+#     css: slidesTw.css
+#     wide: true
+output: html_notebook
+md_extensions: +hard_line_breaks+pipe_tables
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+    #, fig.align = "center"
+    #, fig.width = 3.27, fig.height = 2.5, dev.args = list(pointsize = 10)
+    #,cache = TRUE
+    #, fig.width = 4.3, fig.height = 3.2, dev.args = list(pointsize = 10)
+    #, fig.width = 6.3, fig.height = 6.2, dev.args = list(pointsize = 10)
+    # works with html but causes problems with latex
+    #,out.extra = 'style = "display:block; margin: auto"' 
+    )
+knitr::knit_hooks$set(spar = function(before, options, envir) {
+    if (before) {
+        par(las = 1 )                   #also y axis labels horizontal
+        par(mar = c(2.0,3.3,0,0) + 0.3 )  #margins
+        par(tck = 0.02 )                          #axe-tick length inside plots             
+        par(mgp = c(1.1,0.2,0) )  #positioning of axis title, axis labels, axis
+    }
+})
+```
+
+
+# Background
+## Random uncertainty
+```{r echo=FALSE}
+library(REddyProc)  
+library(dplyr, quietly = TRUE)
+EProc = local({load("StandardProcessing_fluxpart.RData"); get(ls()[1])})  
+results = cbind(EProc$sExportData(), EProc$sExportResults())
+```
+
+Random uncertainty is the scatter of NEE for otherwise same conditions.
+It includes measurement error and intrinsic stochasticity of the studied system.
+
+There is low uncertainty during nighttime and higher uncertianty during daytime.
+```{r}
+plot( NEE_uStar_fsd ~ DateTime, slice(results,400:600))
+```
+
+## Uncertainty scales with flux
+```{r}
+plot( NEE_uStar_fsd ~ NEE_uStar_fall, slice(results, sample.int(nrow(results),400)))
+```
+
+This is called heteroscedasticy.
+
+## Wrong aggregation without correlations
+Error propagatin by adding variance results in an approximate reduction of the  mean (root mean square) 
+$\sqrt{\bar{\sigma^2}}$ by $\sqrt{n}$.
+
+```{r}
+results %>% filter(NEE_uStar_fqc == 0) %>% summarise(
+  nRec = sum(is.finite(NEE_uStar_f))
+  , rms = sqrt(mean(NEE_uStar_fsd^2))
+  , seMean = rms / sqrt(nRec)
+  #, seMean = sqrt(sum(NEE_uStar_fsd^2))/nRec
+  ) %>% select(nRec, rms, seMean)
+```
+Due to the large number of records, the estimated uncertainty is very low.
+
+
+```{r}
+
+```
+
