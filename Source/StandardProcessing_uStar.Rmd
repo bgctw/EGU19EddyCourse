@@ -1,11 +1,11 @@
 ---
-title: "$u_*$ threshold dectection"
+title: "u* threshold dectection"
 author: "Thomas Wutzler"
-# output:
-#   ioslides_presentation:
-#     css: slidesTw.css
-#     wide: true
-output: html_notebook
+output:
+  ioslides_presentation:
+    css: slidesTw.css
+    wide: true
+#output: html_notebook
 md_extensions: +hard_line_breaks+pipe_tables
 ---
 
@@ -33,8 +33,6 @@ knitr::knit_hooks$set(spar = function(before, options, envir) {
 #themeTw <- theme_bw(base_size = 10) + theme(axis.title = element_text(size = 9))
 #bgiDir <- "~/bgi"
 ```
-
-# $u_*$ threshold dectection
 
 ## Importing the half-hourly data
 ```{r inputData, eval=FALSE, include=FALSE, spar=TRUE}
@@ -150,7 +148,7 @@ low $u_*$ threshold  | medium  $u_*$ threshold  | high  $u_*$ threshold
 ```
 
 
-## Aggrgating threshold estimates
+## Aggregating threshold estimates
 
 There threshold may change across time. Hence, there is an estimate for different
 time periods, i.e. seasons. To be conservative, by default gapfilling uses the annually aggregated values.
