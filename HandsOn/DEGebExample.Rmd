@@ -179,6 +179,7 @@ Bonus Task: Repeat with fixed Temperature Senstivity to 80 $\pm$40 K
 
 ## Task 3f: Save the results together with the data
 as tab-delimted text file "plotsHandsOn/DEGeb_Part.txt"
+Store the combined data and results in variable 'results'
 ```{r}
 ?sEddyProc_sExportResults
 ?sEddyProc_sExportData
@@ -190,64 +191,100 @@ as tab-delimted text file "plotsHandsOn/DEGeb_Part.txt"
 #if (file.exists("plotsHandsOn/DE-Geb_Part.txt"))
 #  cat(readLines("plotsHandsOn/DE-Geb_Part.txt", n = 5))
 ```
-
-# Uncertainty aggregation
-
-# Before
-After setting the uStar scenarios, they will be used by method 
-`sMDSGapFillUStarScens`.
-```{r DEGeb_gapFillBoot1, cache = TRUE, message = FALSE, output = 'hide'}
-EProc$sMDSGapFillUStarScens('NEE', FillAll = FALSE)
+```{r include=FALSE, eval=FALSE}
+# execute only interactively: save class to have an restore point
+save(EProc, file = "plotsHandsOn/DE-Geb_EProcPart.RData")
+EProc = local({load("plotsHandsOn/DE-Geb_EProcPart.RData"); get(ls()[1])})  
 ```
 
-Additional output columns are produced for each uStar quantile. 
+# Bias with $u_{*Th}$
+## Focus on year 2005
+```{r}
+results$year <- as.POSIXlt(results$DateTime)$year + 1900
+res05 <- subset(results, year == 2005)
+```
+
+## Task 4a: compute the annual mean NEE for each $u_{*Th}$ scenario
+
+For the mean we can use gap-filled series in column `NEE_<suffix>_f`
+```{r}
+scens = c("uStar","U10","U90")
+NEE_UStar <- 
+### TO_COMPLETE  
+```
+
+## Task 4b: Compute statistic across the obtained aggregates
+median, standard deviation and relative error
+```{r}
+### TO_COMPLETE
+```
+
+
+# Random uncertainty aggregation
+
+## Task 5a: approximate the error terms in results 
+For each good measurement, i.e. where `NEE_uStar_fqc == 0` we have
+measured NEE that includes random fluctuation `NEE_uStar_orig` 
+and gap-filling estimate `NEE_uStar_fall`
+of the expected flux for the conditions at this time.
+
+Create a new column `resid` that stores the difference for good contions
+and NA for other records.
 
 ```{r}
-grep("^NEE.*_f$", colnames( EProc$sExportResults()), value = TRUE )
-```		
-
-Several methods provide processing steps for all scenarios.
-In addition, method `sApplyUStarScen` calls a user-specified function repeatedly
-with a modified argument `suffix`. 
-For example, the flux partitioning across all threshold scenarios can be
-invoked by the following code to produce several GPP estimates.
-
-```{r DEGeb_fluxPart1, cache = TRUE, message = FALSE}
-EProc$sMDSGapFill('Tair', FillAll = FALSE)
-EProc$sApplyUStarScen( EProc$sMRFluxPartition )
-#grep("U10", colnames(EProc$sExportResults()), value = TRUE) 	
-grep("^GPP.*_f$", colnames( EProc$sExportResults()), value = TRUE )
+n <- sum(results$NEE_uStar_fqc == 0)  # number of good records
+?ifelse
+### TO_COMPLETE
 ```
 
-Using change point detection instead of moving point method for UStar Threshold estimation
-------------------------------------------------------------------------------------------
+## Task 5b: compute the empirical autocorrelation function
+```{r}
+library(lognorm)
+?computeEffectiveAutoCorr
+### TO_COMPLETE
+```
+## Task 5c: Compute the effective number of effice observation
+To variable `nEff`
 
-The package also provides another method of estimating the point where NEE saturates 
-with increasing uStar.
-With the ChangePointDetection (CPT) method, the data is not binned by classes of 
-uStar but the changepoint
-is estimated based on the entire subset within one seasons and one temperature class.
-The user invokes this method by specifying argument 
-`ctrlUstarEst.l = usControlUstarEst(isUsingCPTSeveralT = TRUE)`
-to `EstUstarThold` or `sEstUstarThresholdDistribution`.
+and compare to the number of good observations `n`.
 
-The CPT method is usually yields higher thresholds and marks more data as Gap. 
-  
-```{r DEGeb_estUStarCPT, cache = TRUE}
-EProc <- sEddyProc$new(
-  'DE-Geb', DEGebExample, c('NEE','Rg','Tair','VPD', 'Ustar'))
-resUStar <- EProc$sEstUstarThold(
-					ctrlUstarEst = usControlUstarEst(isUsingCPTSeveralT = TRUE)
-					, seasonFactor = seasonFactor
-			)
-#(uStarThCP <- usGetSeasonalSeasonUStarMap(resUStar))
-EProc$useSeaonsalUStarThresholds()
-EProc$sGetUstarScenarios()
+```{r}
+?computeEffectiveNumObs
+### TO_COMPLETE
 ```
 
+## Task 5d: Compute its effective number of observations for year 2005
+Use the autocorrelation function that you determined on the 
+entire dataset before (`rho`)
+```{r}
+?computeEffectiveNumObs # note argument effAcf
+### TO_COMPLETE
+```
 
-		
+## Task 5e Compute the mean annual NEE and its standard deviation for 2005
+For scenario $u_{*Th}$ threshold scenario `uStar`
+Report also the relative error, i.e. coefficient of variation.
 
+Consider gap-filled values in the mean. 
+But make sure to not use gap-filled records in unertainty estimation.
+
+Remember that the root-mean-squared averaged standard deviation decreases 
+by factor $\sqrt{nEff -1}$.
+
+```{r}
+sdGood = res05$NEE_uStar_fsd[res05$NEE_uStar_fqc == 0]
+### TO_COMPLETE
+```
+
+# Combined uncertainty
+## Task 6a Compute the combined uncertaint of random and $u_{*Th}$
+
+Remember that standard deviation of independent variables adds in squares.
+```{r}
+sdNEEUStar = sd(NEE_UStar)
+sdNEECombined <-
+### TO_COMPLETE
+```
 
 
 
