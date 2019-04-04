@@ -1,0 +1,290 @@
+---
+title: "Gebesee handson"
+author: "Thomas Wutzler"
+date: "`r Sys.Date()`"
+output: html_notebook
+---
+
+
+# uStar Threshold estimation
+
+## Preparing the data
+First, the data is loaded. This example uses data that has been downloaded 
+from http://www.europe-fluxdata.eu
+and preprocessed by `fLoadEuroFlux16`, where the DateTime Column has been created, 
+and the variables renamed to the BGC-convention (e.g. Tair instead of Ta).
+
+```{r}
+library(REddyProc)
+data(DEGebExample)
+summary(DEGebExample)
+```
+
+VPD was not given with the original dataset and is calculated from Tair and rH.
+```{r}
+DEGebExample$VPD <- fCalcVPDfromRHandTair(DEGebExample$rH, DEGebExample$Tair)
+```
+
+## Task 1a: Create the REddyProc class
+
+named `EProc` with columns c('NEE','Rg','Tair','VPD', 'Ustar')
+
+at Location LatDeg = 51.1, LongDeg = 10.9, 
+
+and timezone one hour adead of GMT (TimeZoneHour = 1)
+```{r}
+?sEddyProc_initialize  # called by sEddyProc$new
+?sEddyProc_sSetLocationInfo
+### TO_COMPLETE
+```
+
+## Defining Seasons with different surface friction conditions 
+
+The site is a crop site. The harvesting times are visible as sharp edges in the plots of NEE.
+
+The micrometeorological conditions differ between the different cropping periods,
+because the friction at the surface differs.
+Also not the cropping periods do not correspond very well to seasons.
+Hence, for the estimation of uStar-Thresholds, we apply a user-defined splitting 
+of uStar-seasons. With function `usCreateSeasonFactorYdayYear` we provide the starting
+points of the seasons.  
+```{r}
+plot( NEE ~ DateTime, DEGebExample )
+```
+
+## Task 1b: Define sesason
+
+Base on the NEE plot define seasons with
+starting at day 70, 210, 320 in 2004 and 70,180,320 in 2005 and 120,305 in 2006
+
+Optional: Add horizontal lines to the NEE~DateTime plot.
+```{r DEGeb_estUStar1a, spar = TRUE, message = FALSE, fig.width = 10}
+?usCreateSeasonFactorYdayYear
+### TO_COMPLETE
+```
+
+## Task 1c: Estimate the distribution of u* thresholds
+
+Specify the seasons defined before.
+
+For saving time, here use only 30 bootstrap samples (argument nSample) and 
+estimate only the 10th and 90th percentile (argument probs)
+
+Print the estimated thresholds.
+
+
+```{r DEGeb_estUStar1b}
+?sEddyProc_sEstimateUstarScenarios
+?sEddyProc_sGetEstimatedUstarThresholdDistribution
+### TO_COMPLETE
+```
+
+# Gapfilling
+
+## Task 2a: Use seasonal u* thresholds
+
+- display the default annually used thresholds
+- specify using seasonsal thresholds
+- display the scenarios again
+
+
+```{r, message = FALSE}
+?sEddyProc_sGetUstarScenarios
+?sEddyProc_useSeaonsalUStarThresholds
+### TO_COMPLETE
+```
+
+## Task 2b: Perform gapfilling for NEE
+
+Estimate random error also for non-gap records.
+```{r, message=FALSE}
+?sEddyProc_sMDSGapFillUStarScens
+### TO_COMPLETE
+```
+
+## Task 2c: Produce a fingerprint plot of gapfilled values
+
+First a single plot in document
+- for 90% quantile $u_{*Th}$ (suffix U90)
+- for year 2005
+
+```{r}
+?sEddyProc_sPlotFingerprintY
+### TO_COMPLETE
+```
+
+Next, produce pdf-files with legend for all years in subdirectory "plotsHandsOn"
+```{r}
+?sEddyProc_sPlotFingerprint
+### TO_COMPLETE
+```
+
+# Flux partitioning
+
+## Task 3a: Prepare for partitioning
+Specify the Location and time zone (51.1N, 10.0W, 1hour ahead of GMT)
+
+Gapfill the necessary meteorological input variables (Rg, Tair, VPD). Here
+we do not need computing the uncertainty of the non-filled records.
+
+```{r, message=FALSE}
+?sEddyProc_sSetLocationInfo
+?sEddyProc_sMDSGapFill  # note the FillAll argument 
+### TO_COMPLETE
+```
+
+## Task 3b: Nighttime partitioning
+Perform the nighttime partitioning
+
+```{r, message=FALSE}
+?sEddyProc_sMRFluxPartitionUStarScens
+### TO_COMPLETE
+```
+
+## Task 3c: Plotting the head GPP
+Query the result data.frame to variable dsResults
+```{r}
+?sEddyProc_sExportResults
+### TO_COMPLETE
+```
+
+Plot the head of GPP for U90 scenario against time (DEGebExample$DateTime)
+```{r}
+nRec = 48*4 # 4 days of half-hours
+plot(head(dsResults$GPP_U90_f,nRec) ~ head(DEGebExample$DateTime, nRec), type = "l")
+```
+
+
+## Task3d: Daytime partitioning
+Perform the daytime partitioning.
+
+```{r, message=FALSE}
+?sEddyProc_sGLFluxPartitionUStarScens
+### TO_COMPLETE
+```
+
+Bonus Task: Repeat with fixed Temperature Senstivity to 80 $\pm$40 K
+```{r eval=FALSE}
+?partGLControl
+### TO_COMPLETE
+```
+
+## Task 3e: Produce fingerprint plots of GPP_DT and Reco_DT 
+- For the original non-bootstrapped data uStar scenario (suffix uStar)
+- In Sub-Directory `plotsHandsOn`
+```{r}
+?sEddyProc_sPlotFingerprint
+### TO_COMPLETE
+```
+
+## Task 3f: Save the results together with the data
+as tab-delimted text file "plotsHandsOn/DEGeb_Part.txt"
+Store the combined data and results in variable 'results'
+```{r}
+?sEddyProc_sExportResults
+?sEddyProc_sExportData
+?fWriteDataframeToFile
+### TO_COMPLETE
+```
+
+```{r include=FALSE}
+#if (file.exists("plotsHandsOn/DE-Geb_Part.txt"))
+#  cat(readLines("plotsHandsOn/DE-Geb_Part.txt", n = 5))
+```
+```{r include=FALSE, eval=FALSE}
+# execute only interactively: save class to have an restore point
+save(EProc, file = "plotsHandsOn/DE-Geb_EProcPart.RData")
+EProc = local({load("plotsHandsOn/DE-Geb_EProcPart.RData"); get(ls()[1])})  
+```
+
+# Bias with $u_{*Th}$
+## Focus on year 2005
+```{r}
+results$year <- as.POSIXlt(results$DateTime)$year + 1900
+res05 <- subset(results, year == 2005)
+```
+
+## Task 4a: compute the annual mean NEE for each $u_{*Th}$ scenario
+
+For the mean we can use gap-filled series in column `NEE_<suffix>_f`
+```{r}
+scens = c("uStar","U10","U90")
+NEE_UStar <- 
+### TO_COMPLETE  
+```
+
+## Task 4b: Compute statistic across the obtained aggregates
+median, standard deviation and relative error
+```{r}
+### TO_COMPLETE
+```
+
+
+# Random uncertainty aggregation
+
+## Task 5a: approximate the error terms in results 
+For each good measurement, i.e. where `NEE_uStar_fqc == 0` we have
+measured NEE that includes random fluctuation `NEE_uStar_orig` 
+and gap-filling estimate `NEE_uStar_fall`
+of the expected flux for the conditions at this time.
+
+Create a new column `resid` that stores the difference for good contions
+and NA for other records.
+
+```{r}
+n <- sum(results$NEE_uStar_fqc == 0)  # number of good records
+?ifelse
+### TO_COMPLETE
+```
+
+## Task 5b: compute the empirical autocorrelation function
+```{r}
+library(lognorm)
+?computeEffectiveAutoCorr
+### TO_COMPLETE
+```
+## Task 5c: Compute the effective number of effice observation
+To variable `nEff`
+
+and compare to the number of good observations `n`.
+
+```{r}
+?computeEffectiveNumObs
+### TO_COMPLETE
+```
+
+## Task 5d: Compute its effective number of observations for year 2005
+Use the autocorrelation function that you determined on the 
+entire dataset before (`rho`)
+```{r}
+?computeEffectiveNumObs # note argument effAcf
+### TO_COMPLETE
+```
+
+## Task 5e Compute the mean annual NEE and its standard deviation for 2005
+For scenario $u_{*Th}$ threshold scenario `uStar`
+Report also the relative error, i.e. coefficient of variation.
+
+Consider gap-filled values in the mean. 
+But make sure to not use gap-filled records in unertainty estimation.
+
+Remember that the root-mean-squared averaged standard deviation decreases 
+by factor $\sqrt{nEff -1}$.
+
+```{r}
+sdGood = res05$NEE_uStar_fsd[res05$NEE_uStar_fqc == 0]
+### TO_COMPLETE
+```
+
+# Combined uncertainty
+## Task 6a Compute the combined uncertaint of random and $u_{*Th}$
+
+Remember that standard deviation of independent variables adds in squares.
+```{r}
+sdNEEUStar = sd(NEE_UStar)
+sdNEECombined <-
+### TO_COMPLETE
+```
+
+
+

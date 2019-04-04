@@ -1,0 +1,214 @@
+---
+title: "Uncertainty in annual aggregates"
+author: "Thomas Wutzler"
+output:
+  ioslides_presentation:
+    css: slidesTw.css
+    wide: true
+#output: html_notebook
+md_extensions: +hard_line_breaks+pipe_tables
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+    #, fig.align = "center"
+    #, fig.width = 3.27, fig.height = 2.5, dev.args = list(pointsize = 10)
+    #,cache = TRUE
+    #, fig.width = 4.3, fig.height = 3.2, dev.args = list(pointsize = 10)
+    #, fig.width = 6.3, fig.height = 6.2, dev.args = list(pointsize = 10)
+    # works with html but causes problems with latex
+    #,out.extra = 'style = "display:block; margin: auto"' 
+    )
+knitr::knit_hooks$set(spar = function(before, options, envir) {
+    if (before) {
+        par(las = 1 )                   #also y axis labels horizontal
+        par(mar = c(2.0,3.3,0,0) + 0.3 )  #margins
+        par(tck = 0.02 )                          #axe-tick length inside plots             
+        par(mgp = c(1.1,0.2,0) )  #positioning of axis title, axis labels, axis
+    }
+})
+```
+
+# Bias with $u_{*Th}$
+
+## Motivation
+```{r echo=FALSE, message=FALSE}
+library(REddyProc)  
+library(dplyr, quietly = TRUE)
+EProc = local({load("StandardProcessing_fluxpart.RData"); get(ls()[1])})  
+results = cbind(EProc$sExportData(), EProc$sExportResults())
+```
+We get a different annually aggregated NEE for each quantile of $u_{*Th}$.
+Usually NEE is lower with lower threshold.
+
+For an uncertainty estimate we must compute the annual aggregate for
+each of the scenarios.
+
+Getting the scenario names:
+```{r, results="hold"}
+(tmp <- names(EProc$sGetUstarScenarios())) 
+uStarScens = tmp[-1]
+```
+
+## Aggregate Reco for each scenario {.smaller}
+```{r}
+fMean <- function(suffix){
+  colName = paste0("Reco_",suffix)
+  #colName = paste0("GPP_",suffix,"_f")
+  mean(results[[colName]])
+}
+#fMean("U50")
+meansUStar <- unlist(EProc$sApplyUStarScen(fMean))
+names(meansUStar) <- uStarScens
+meansUStar
+```
+
+```{r}
+c(median(meansUStar), sd(meansUStar), 100*sd(meansUStar)/abs(median(meansUStar)))
+```
+
+Here only small relative error of 1.5% in respiration introduced by 
+unknown $u_{*Th}$
+
+## More robust analysis of $u_{*Th}$ effects
+For a thorough analysis, we would have needed 
+to specify more than 3 quantiles 
+when we estimated the $u_{*Th}$ distribution.
+
+But this would have multiplied the computation time.
+
+```{r eval=FALSE}
+EProc$sEstimateUstarScenarios(
+    nSample = 200L, probs = seq(0.125,0.975, length.out = 30))
+```
+
+# Random uncertainty
+## Random uncertainty {.smaller}
+Random uncertainty is the scatter of NEE for otherwise same conditions.
+It includes measurement error and intrinsic stochasticity of the studied system.
+
+There is low uncertainty during nighttime and higher uncertianty during daytime.
+```{r}
+plot( NEE_uStar_fsd ~ DateTime, slice(results,400:600))
+```
+
+## Uncertainty scales with flux (heteroscadastic)
+```{r}
+plot( NEE_uStar_fsd ~ NEE_uStar_fall, slice(results, sample.int(nrow(results),400)))
+```
+
+## Wrong aggregation without correlations 
+Error propagatin by adding variance results in an approximate reduction of the  mean (root mean square) 
+$\sqrt{\bar{\sigma^2}}$ by $\sqrt{n}$.
+
+```{r}
+stat1 <- results %>% filter(NEE_uStar_fqc == 0) %>% summarise(
+  nRec = sum(is.finite(NEE_uStar_f))
+  , rms = sqrt(mean(NEE_uStar_fsd^2, na.rm = TRUE))
+  , seMean = rms / sqrt(nRec)
+  #, seMean = sqrt(sum(NEE_uStar_fsd^2))/nRec
+  ) %>% select(nRec, seMean) %>% unlist()
+stat1["seMean"]
+```
+Due to the large number of records, the estimated uncertainty is very low.
+
+
+## Considering autocorrelation {.smaller}
+Errors of subsequent measurements tend to have the same direction and magnitude.
+Subsequent errors tend to be similar.
+
+We approximate the error terms by the difference between original measurement
+and value from Marginal Distribution samples during gapfilling.
+
+```{r}
+results <- results %>% 
+  mutate(resid = ifelse(NEE_uStar_fqc == 0, NEE_uStar_orig - NEE_uStar_fall, NA ))
+```
+```{r echo=FALSE, fig.height=3}
+plot(resid ~ DateTime, slice(results, 300:350), type = "l")
+abline(h = 0, col = "grey")
+```
+
+## Correlation between subsequent errors
+```{r}
+n <- nrow(results)
+plot(NEE_uStar_fsd[-n] ~ NEE_uStar_fsd[-1], results); abline(a = 0,b = 1)
+```
+
+## Autocorrelation function
+They are not independent of each other. The strenght of their dependence 
+can be expressed by values $\rho_i$ 
+$$
+x_{i} = \rho_1 x_{i-1} + \rho_2 x_{i-2} + ... + \epsilon_i
+$$
+
+The series $\rho$ is called the autocorrelation function.
+
+## Empirical autocorrelation function {.smaller}
+
+The series of estimates of those coefficients from the data is called the 
+empirical autocorrelation function.
+But only the first terms of the empricial functions are reliable.
+(Take only the ones before the first negative coefficient)
+
+```{r fig.height=3}
+#rho = acf(results$resid, lag.max = 20, main = "", na.action = na.exclude)
+library(lognorm)
+rho = computeEffectiveAutoCorr(results$resid)
+plot(rho[-1])
+```
+
+## Error propagation
+If the observations are not independent the average of the mean 
+does not scale by $\sqrt{n}$ but by approximately 
+$\sqrt{n_{eff}}$ with $n_{eff} < n$.
+
+$$
+\sigma(m) = \frac{ \sqrt{\bar{\sigma^2}} }{ \sqrt{n_{eff} -1}}
+$$
+
+## Effectively fewer observations
+```{r}
+library(lognorm)
+nEff <- computeEffectiveNumObs(results$resid, na.rm = TRUE)
+c( nEff = nEff, nObs = sum(is.finite(results$resid)))
+```
+Due to the high autocorrelation, the entire year of NEE records have only
+fewer effective observations.
+
+When computing correlations or effective number of observations, make sure
+to use a complete time series with a records for each equidistant time step.
+Missing values will 
+
+## Larger aggregated error
+```{r}
+stat2 <- results %>% filter(NEE_uStar_fqc == 0) %>% summarise(
+  rms = sqrt(mean(NEE_uStar_fsd^2, na.rm = TRUE))
+  , seMeanCor = rms / sqrt(nEff - 1)
+  ) %>% select(seMeanCor) %>% unlist()
+NEE <- mean(results$NEE_uStar_f)
+c(stat2["seMeanCor"], stat1["seMean"], cv = stat2["seMeanCor"]/abs(NEE))
+```
+
+# Combined uncertainty
+
+## Add in squares
+
+The uncertainty due to random fluctuations can be assumed independent
+to the uncertainty introduced by the uncertain $u_{*Th}$. 
+Then error propgation can be done by adding variances.
+
+$$
+\sigma_{Combined}(x) = \sqrt{\sigma^2_{u_*}(x) + \sigma^2_{Random}(x)}
+$$
+
+```{r}
+sdNEERandom <- sd(unlist(EProc$sApplyUStarScen(function(suffix){
+  mean(results[[paste0("NEE_",suffix,"_f")]])
+})))
+sdNEE <- sqrt(stat2["seMeanCor"]^2 + sdNEERandom^2)
+sdNEE
+```
+
+
+
