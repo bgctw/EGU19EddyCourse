@@ -27,12 +27,15 @@ DEGebExample$VPD <- fCalcVPDfromRHandTair(DEGebExample$rH, DEGebExample$Tair)
 
 ## Task 1a: Create the REddyProc class
 
-with columns c('NEE','Rg','Tair','VPD', 'Ustar')
+named `EProc` with columns c('NEE','Rg','Tair','VPD', 'Ustar')
 
 at Location LatDeg = 51.1, LongDeg = 10.9, 
 
 and timezone one hour adead of GMT (TimeZoneHour = 1)
 ```{r}
+?sEddyProc_initialize  # called by sEddyProc$new
+?sEddyProc_sSetLocationInfo
+### TO_COMPLETE
 EProc <- sEddyProc$new('DE-Geb', DEGebExample, c('NEE','Rg','Tair','VPD', 'Ustar'))
 EProc$sSetLocationInfo(LatDeg = 51.1, LongDeg = 10.9, TimeZoneHour = 1)  #Location of Gebesee
 ```
@@ -58,6 +61,8 @@ starting at day 70, 210, 320 in 2004 and 70,180,320 in 2005 and 120,305 in 2006
 
 Optional: Add horizontal lines to the NEE~DateTime plot.
 ```{r DEGeb_estUStar1a, spar = TRUE, message = FALSE, fig.width = 10}
+?usCreateSeasonFactorYdayYear
+### TO_COMPLETE
 seasonStarts <- as.data.frame( do.call( rbind, list(
 	  c(70,2004)
           ,c(210,2004)
@@ -70,6 +75,7 @@ seasonStarts <- as.data.frame( do.call( rbind, list(
 )))
 seasonFactor <- usCreateSeasonFactorYdayYear(
   DEGebExample$DateTime - 15*60, starts = seasonStarts)
+# optional
 seasonStartsDate <- fConvertTimeToPosix( data.frame(Year = seasonStarts[,2]
 	, DoY = seasonStarts[,1], Hour = 0.25), 'YDH'
 	, Year = "Year", Day = "DoY", Hour = "Hour")
@@ -88,6 +94,9 @@ Print the estimated thresholds.
 
 
 ```{r DEGeb_estUStar1b}
+?sEddyProc_sEstimateUstarScenarios
+?sEddyProc_sGetEstimatedUstarThresholdDistribution
+### TO_COMPLETE
 EProc$sEstimateUstarScenarios( 
   seasonFactor = seasonFactor, nSample = 30L, probs = c(0.1,0.9))
 EProc$sGetEstimatedUstarThresholdDistribution()
@@ -97,9 +106,16 @@ EProc$sGetEstimatedUstarThresholdDistribution()
 
 ## Task 2a: Use seasonal u* thresholds
 
-and display the used thresholds 
+- display the default annually used thresholds
+- specify using seasonsal thresholds
+- display the scenarios again
+
 
 ```{r, message = FALSE}
+?sEddyProc_sGetUstarScenarios
+?sEddyProc_useSeaonsalUStarThresholds
+### TO_COMPLETE
+EProc$sGetUstarScenarios()
 EProc$useSeaonsalUStarThresholds()
 EProc$sGetUstarScenarios()
 ```
@@ -120,10 +136,15 @@ First a single plot in document
 - for year 2005
 
 ```{r}
+?sEddyProc_sPlotFingerprintY
+### TO_COMPLETE
 EProc$sPlotFingerprintY('NEE_U90_f', Year = 2005)
 ```
+
 Next, produce pdf-files with legend for all years in subdirectory "plotsHandsOn"
 ```{r}
+?sEddyProc_sPlotFingerprint
+### TO_COMPLETE
 EProc$sPlotFingerprint('NEE_U90_f', Dir = "plotsHandsOn")
 ```
 
@@ -137,6 +158,8 @@ we do not need computing the uncertainty of the non-filled records.
 
 ```{r, message=FALSE}
 ?sEddyProc_sSetLocationInfo
+?sEddyProc_sMDSGapFill  # note the FillAll argument 
+### TO_COMPLETE
 EProc$sSetLocationInfo(LatDeg = 51.1, LongDeg = 10.9, TimeZoneHour = 1)  #Location of Gebesee
 EProc$sMDSGapFill('Rg', FillAll = FALSE)     
 EProc$sMDSGapFill('Tair', FillAll = FALSE)     
@@ -148,13 +171,15 @@ Perform the nighttime partitioning
 
 ```{r, message=FALSE}
 ?sEddyProc_sMRFluxPartitionUStarScens
+### TO_COMPLETE
 EProc$sMRFluxPartitionUStarScens()
 ```
 
 ## Task 3c: Plotting the head GPP
-Query the result data.frame to variable res
+Query the result data.frame to variable dsResults
 ```{r}
 ?sEddyProc_sExportResults
+### TO_COMPLETE
 dsResults <- EProc$sExportResults()
 ```
 
@@ -170,12 +195,14 @@ Perform the daytime partitioning.
 
 ```{r, message=FALSE}
 ?sEddyProc_sGLFluxPartitionUStarScens
+### TO_COMPLETE
 EProc$sGLFluxPartitionUStarScens()
 ```
 
 Bonus Task: Repeat with fixed Temperature Senstivity to 80 $\pm$40 K
 ```{r eval=FALSE}
 ?partGLControl
+### TO_COMPLETE
 EProc$sGLFluxPartitionUStarScens(
   controlGLPart = partGLControl(
     fixedTempSens = data.frame(E0 = 80, sdE0 = 40, RRef = NA_real_))
@@ -188,6 +215,7 @@ EProc$sGLFluxPartitionUStarScens(
 - In Sub-Directory `plotsHandsOn`
 ```{r}
 ?sEddyProc_sPlotFingerprint
+### TO_COMPLETE
 EProc$sPlotFingerprint("GPP_DT_uStar",Dir = "plotsHandsOn")
 EProc$sPlotFingerprint("Reco_DT_uStar",Dir = "plotsHandsOn")
 ```
@@ -198,9 +226,10 @@ as tab-delimted text file "plotsHandsOn/DEGeb_Part.txt"
 ?sEddyProc_sExportResults
 ?sEddyProc_sExportData
 ?fWriteDataframeToFile
+### TO_COMPLETE
 dsRes <- EProc$sExportResults()
 dsData <- EProc$sExportData()
-fWriteDataframeToFile(cbind(dsData, dsRes),"DE-Geb_Part.txt", Dir = "plotsHandsOn")
+fWriteDataframeToFile(cbind(dsData, dsRes), "DE-Geb_Part.txt", Dir = "plotsHandsOn")
 ```
 
 ```{r include=FALSE}
