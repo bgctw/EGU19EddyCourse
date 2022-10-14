@@ -129,6 +129,16 @@ Estimate random error also for non-gap records.
 EProc$sMDSGapFillUStarScens("NEE", FillAll = TRUE)
 ```
 
+What columns have been created?
+```{r}
+colnames(EProc$sExportResults())
+```
+
+For an explanation of the column names see [output format description](https://www.bgc-jena.mpg.de/bgi/index.php/Services/REddyProcWebOutput)
+- NEE_<scenario>_f: gaps replaced by modeled values (gapfilled)
+- NEE_<scenario>_fall: all NEE replaced by modeled values
+- NEE_<scenario>_fqc: quality flag: 0 observations, 1 good quality of gapfilling 
+
 ## Task 2c: Produce a fingerprint plot of gapfilled values
 
 First a single plot in document
@@ -281,7 +291,7 @@ measured NEE that includes random fluctuation `NEE_uStar_orig`
 and gap-filling estimate `NEE_uStar_fall`
 of the expected flux for the conditions at this time.
 
-Create a new column `resid` that stores the difference for good contions
+Create a new column `resid` that stores the difference for good conditions
 and NA for other records.
 
 ```{r}
