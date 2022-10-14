@@ -35,6 +35,7 @@ knitr::knit_hooks$set(spar = function(before, options, envir) {
 ```{r echo=FALSE}
 library(REddyProc)  
 EProc = local({load("StandardProcessing_gapfill.RData"); get(ls()[1])})  
+#EProc$sApplyUStarScen
 ```
 
 NEE is net flux of two gross fluxes. IThe third post-processing step is partitioning the net flux (NEE) into its gross 
@@ -140,7 +141,7 @@ CO2 uptake rate of the canopy at infinite Rg, which is
 a decreasing function at higher VPD values.
 
 ## Temperature sensitivty
-Temeprature sensitivity, $E_0$ is estimated from night-time data and provided
+Temperature sensitivity, $E_0$ is estimated from night-time data and provided
 to the day-time LRC fit to avoid parameter identifyability problems.
 
 Different from the nigh-time partitioning a smoothed time varying estimate is
@@ -148,7 +149,7 @@ used instead of the annual aggregate. And during $E_0$ estimation, reference
 temperature $R_{Ref}$ is set to the median temperature of the time window.
 
 ## LRC parameters and Reference temperature $R_{Ref}$
-Are are fitted using only daytime data and the previously
+Are fitted using only daytime data and the previously
 determined temperature sensitivity ($E_0$) for each shifting window 
 across records.
 
@@ -217,6 +218,15 @@ $GPP$  | $R_{eco}$
 <img src="plots/DE-Tha_1998_FP_GPP_U50_f.png" width="400"/> | <img src="plots/DE-Tha_1998_FP_Reco_U50.png" width="400"/> 
 
 ## Daytime partitioning
+
+```{r eval=FALSE, include=FALSE}
+  EProc$trace(sApplyUStarScen, recover); # EProc$untrace(sApplyUStarScen)
+  ftmp = function(suffix=NA){
+    recover()
+    suffix
+  } 
+  tmp = EProc$sApplyUStarScen(ftmp)
+```
 
 Repeated for each of the $u_*$ threshold scenario 
 (percentiles of $u_{*Th}$ distribution)

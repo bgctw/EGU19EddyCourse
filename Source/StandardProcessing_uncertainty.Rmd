@@ -46,8 +46,7 @@ each of the scenarios.
 
 Getting the scenario names:
 ```{r, results="hold"}
-(tmp <- names(EProc$sGetUstarScenarios())) 
-uStarScens = tmp[-1]
+(uStarScens = EProc$sGetUstarSuffixes())
 ```
 
 ## Aggregate Reco for each scenario {.smaller}

@@ -13,3 +13,5 @@ plotsHandsOn/*
 useCase.Rmd
 uStarCases.Rmd
 *.html
+StandardProcessing_*.RData
+*_proc.txt
