@@ -1,0 +1,84 @@
+---
+title: end of period timestamp convention
+author: "Thomas Wutzler"
+output:
+  ioslides_presentation:
+    css: slidesTw.css
+    wide: true
+#output: html_notebook
+md_extensions: +hard_line_breaks+pipe_tables
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+    #, fig.align = "center"
+    #, fig.width = 3.27, fig.height = 2.5, dev.args = list(pointsize = 10)
+    #,cache = TRUE
+    #, fig.width = 4.3, fig.height = 3.2, dev.args = list(pointsize = 10)
+    #, fig.width = 6.3, fig.height = 6.2, dev.args = list(pointsize = 10)
+    # works with html but causes problems with latex
+    #,out.extra = 'style = "display:block; margin: auto"' 
+    )
+knitr::knit_hooks$set(spar = function(before, options, envir) {
+    if (before) {
+        par(las = 1 )                   #also y axis labels horizontal
+        par(mar = c(2.0,3.3,0,0) + 0.3 )  #margins
+        par(tck = 0.02 )                          #axe-tick length inside plots             
+        par(mgp = c(1.1,0.2,0) )  #positioning of axis title, axis labels, axis
+     }
+})
+```
+
+```{r, include = FALSE, warning = FALSE}
+#themeTw <- theme_bw(base_size = 10) + theme(axis.title = element_text(size = 9))
+#bgiDir <- "~/bgi"
+```
+
+## "end of period" timestamp convention
+Time stamp of the half-hour from 00.00 to 00:30 is 
+
+00:30
+
+Need to take care in preparing input data
+
+## Why do I get Warnings on missing times?
+
+[FAQ](https://www.bgc-jena.mpg.de/bgi/index.php/Services/REddyProcWebFAQ#timestampsStartEnd)
+
+```
+Warning in fCheckHHTimeSeries(Data[[ColPOSIXTime]], DTS = DTS, "sEddyProc.initialize") :
+  sEddyProc.initialize:::fCheckHHTimeSeries::: Time stamp of first data row 
+  is not at the end of the first half-hour: 00:00 instead of 00:30!
+Warning in fCheckHHTimeSeries(Data[[ColPOSIXTime]], DTS = DTS, "sEddyProc.initialize") :
+  sEddyProc.initialize:::fCheckHHTimeSeries::: The last time stamp is not midnight: 0:00!
+```  
+
+## Example setup  
+```{r message=FALSE, warning=FALSE, spar=TRUE}
+library(REddyProc)
+library(dplyr)
+ds = DEGebExample
+head(ds$DateTime)
+```
+
+Example correctly starts with hour00:30.
+
+## Subsetting  times
+Problematic:
+```{r}
+ds05 = filter(ds, as.POSIXlt(DateTime)$year == (2005-1900))
+head(ds05$DateTime,2)
+```
+
+"2005-01-01 00:00:00 GMT" == "2004-12-31 hr=24.0" is the last record for year 2004.
+
+Better: subtract 15 minutes to use center-timestamps:
+```{r}
+ds05b = filter(ds, as.POSIXlt(DateTime - 15*60)$year == (2005-1900))
+head(ds05b$DateTime,2)
+```
+
+```{r eval=FALSE, include=FALSE}
+ds05$VPD <- fCalcVPDfromRHandTair(ds05$rH, ds05$Tair)
+EProc <- sEddyProc$new('DE-Geb', ds05)
+```
