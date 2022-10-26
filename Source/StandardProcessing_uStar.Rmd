@@ -130,10 +130,10 @@ EProc$sDATA$NEE_low[ EProc$sDATA$Ustar < uStarScen["5%"]] <- NA
 EProc$sDATA$NEE_median[ EProc$sDATA$Ustar < uStarScen["50%"]] <- NA
 EProc$sDATA$NEE_upper[ EProc$sDATA$Ustar < uStarScen["95%"]] <- NA
 # need to produce fingerprints by hand in console - if exeucted from chunk it does not safe a pdf
-EProc$sPlotFingerprint('NEE_orig', Dir = "plots", Format = "png")
-EProc$sPlotFingerprint('NEE_low', Dir = "plots", Format = "png")
-EProc$sPlotFingerprint('NEE_median', Dir = "plots", Format = "png")
-EProc$sPlotFingerprint('NEE_upper', Dir = "plots", Format = "png")
+EProc$sPlotFingerprint('NEE_orig', Dir = "figOrig_gen", Format = "png")
+EProc$sPlotFingerprint('NEE_low', Dir = "figOrig_gen", Format = "png")
+EProc$sPlotFingerprint('NEE_median', Dir = "figOrig_gen", Format = "png")
+EProc$sPlotFingerprint('NEE_upper', Dir = "figOrig_gen", Format = "png")
 EProc$sDATA$NEE_median <- EProc$sDATA$NEE_orig <- 
   EProc$sDATA$NEE_low <- EProc$sDATA$NEE_upper <- NULL
 ```
@@ -141,10 +141,10 @@ EProc$sDATA$NEE_median <- EProc$sDATA$NEE_orig <-
 
 low $u_*$ threshold  | medium  $u_*$ threshold  | high  $u_*$ threshold  
 -|-|-|-
-<img src="plots/DE-Tha_1998_FP_NEE_low.png" width="300"/> | <img src="plots/DE-Tha_1998_FP_NEE_median.png" width="300"/> | <img src="plots/DE-Tha_1998_FP_NEE_upper.png" width="300"/> 
+<img src="figOrig_gen/DE-Tha_1998_FP_NEE_low.png" width="300"/> | <img src="figOrig_gen/DE-Tha_1998_FP_NEE_median.png" width="300"/> | <img src="figOrig_gen/DE-Tha_1998_FP_NEE_upper.png" width="300"/> 
 ```{r include=FALSE}
 #:-------------------------:|:-------------------------:|:-------------------------:
-# ![](plots/DE-Tha_1998_FP_NEE_low.png =400x) | ![](plots/DE-Tha_1998_FP_NEE_median.png =200x) | ![upper uStar threshold](plots/DE-Tha_1998_FP_NEE_upper.png =200x)
+# ![](figOrig_gen/DE-Tha_1998_FP_NEE_low.png =400x) | ![](figOrig_gen/DE-Tha_1998_FP_NEE_median.png =200x) | ![upper uStar threshold](figOrig_gen/DE-Tha_1998_FP_NEE_upper.png =200x)
 ```
 
 

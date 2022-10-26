@@ -38,7 +38,7 @@ EProc = local({load("StandardProcessing_uStar.RData"); get(ls()[1])})
 The filtering for low $u_*$ introduced gaps in the NEE data. 
 In order to compute annual sums, these must be filled with estimated fluxes.
 
-![](plots/DE-Tha_1998_FP_NEE_median.png)
+![](figOrig_gen/DE-Tha_1998_FP_NEE_median.png)
 
 ## Lookup tables (LUT)
 
