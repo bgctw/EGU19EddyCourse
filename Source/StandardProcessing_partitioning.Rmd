@@ -38,7 +38,7 @@ EProc = local({load("StandardProcessing_gapfill.RData"); get(ls()[1])})
 #EProc$sApplyUStarScen
 ```
 
-NEE is net flux of two gross fluxes. IThe third post-processing step is partitioning the net flux (NEE) into its gross 
+NEE is net flux of two gross fluxes. The third post-processing step is partitioning the net flux (NEE) into its gross 
 components $GPP$ and $R_{eco}$.
 
 $$

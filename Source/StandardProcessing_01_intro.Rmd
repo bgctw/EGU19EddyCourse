@@ -58,15 +58,29 @@ R6 object-oriented design
 typical R users have to get used to it, because its a different
 philosophy compyred to a collection of functions.
 
-## A day in the life of EProc 
+## A day in the life of EProc {.smaller}
 
-- initialize the class with your data table
+- initialize the class with your data table, and tell time zone and geo-location
+```{r eval=FALSE, message=FALSE}
+EProc = sEddyProc$new(...)
+EProc$sSetLocationInfo(LatDeg = 51.0, LongDeg = 13.6, TimeZoneHour = 1)  
+```
 - ask it to estimate the conditions suitable for the EC method -> u* threshold
+```{r eval=FALSE, message=FALSE}
+EProc$sEstUstarThold(...)
+```
 - ask it to model the missing or filtered data -> gapfilling
-- tell it the time zone and geo-location
+```{r eval=FALSE, message=FALSE}
+EProc$sMDSGapFill(...)
+```
 - ask it to compute gross fluxes GPP and REco -> flux partitioning
+```{r eval=FALSE, message=FALSE}
+EProc$sMRFluxPartition(...)
+```
 - ask it to provide the result data or write it to file
-
+```{r eval=FALSE, message=FALSE}
+EProc$sExportResults()
+```
 
 ## But: $u_*$ is uncertain
 ```{r eval=FALSE, include=FALSE}
